@@ -3,22 +3,24 @@
 import torch
 from torch import nn
 
+from hubconf import dinov3_vith16plus
 
 class Dinov3Backbone(nn.Module):
     def __init__(
-        self, name="dinov2_vitb14", pretrained_weight=None, cfg=None, *args, **kwargs
+        self, name="dinov3_vith16plus", pretrained_weight=None, cfg=None, *args, **kwargs
     ):
         super().__init__()
         self.name = name
         self.cfg = cfg
 
-        self.encoder = torch.hub.load(
-            "facebookresearch/dinov3",
-            self.name,
-            source="github",
-            pretrained=False,
-            drop_path=self.cfg.MODEL.BACKBONE.DROP_PATH_RATE,
-        )
+        self.encoder = dinov3_vith16plus(pretrained=False)
+        #self.encoder = torch.hub.load(
+        #    "facebookresearch/dinov3",
+        #    self.name,
+        #    source="github",
+        #    pretrained=False,
+        #    drop_path=self.cfg.MODEL.BACKBONE.DROP_PATH_RATE,
+        #)
         self.patch_size = self.encoder.patch_size
         self.embed_dim = self.embed_dims = self.encoder.embed_dim
 
