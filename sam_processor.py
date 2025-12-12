@@ -14,7 +14,10 @@ from sam_3d_body import load_sam_3d_body, SAM3DBodyEstimator
 
 
 class SAM3D_Processor:
-    def __init__(self, detector_folder_path: str, checkpoint_path: str, mhr_path: str):
+    def __init__(self, detector_folder_path: str, 
+                       checkpoint_path: str, 
+                       mhr_path: str, 
+                       fov_path: str):
         # Initialize sam-3d-body model and other optional modules
         self.__device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         
@@ -30,7 +33,9 @@ class SAM3D_Processor:
                                               score_thresh=0.25)
         print("Person Detector is ready")
         print("Loading FOV Estimator")
-        self.__fov_estimator = FOVEstimator(name="moge2", device=self.__device, path="")
+        self.__fov_estimator = FOVEstimator(name="moge2", 
+                                            device=self.__device,
+                                            path=fov_path)
         print("FOV Estimator is ready")
         self.__estimator = SAM3DBodyEstimator(sam_3d_body_model=self.__model, model_cfg=self.__model_cfg,
                                               human_detector=self.__human_detector,
