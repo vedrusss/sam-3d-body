@@ -8,24 +8,21 @@ import torch
 
 import _init_paths
 
-#from tools.build_detector import HumanDetector
 from human_detector.human_detector_vitdet import HumanDetector
 from tools.build_fov_estimator import FOVEstimator
 from sam_3d_body import load_sam_3d_body, SAM3DBodyEstimator
 
-#import cv2
-#from ultralytics import YOLO
 
 class SAM3D_Processor:
     def __init__(self, detector_folder_path: str, checkpoint_path: str, mhr_path: str):
         # Initialize sam-3d-body model and other optional modules
         self.__device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        
         print("Loading SAM-3D model")
         self.__model, self.__model_cfg = load_sam_3d_body(checkpoint_path, 
                                                           device=self.__device,
                                                           mhr_path=mhr_path)
         print("SAM 3D model is ready")
-        #self.__human_detector = HumanDetector(name="vitdet", device=self.__device, path="")
         print("Loading Person Detector")
         self.__human_detector = HumanDetector(model_dir=detector_folder_path,  # куда сложить веса
                                               device=self.__device,
@@ -42,35 +39,13 @@ class SAM3D_Processor:
         )
         self.__bbox_thresh = 0.8
         self.__use_mask = False
-        #self.__det2 = YOLO("yolo11n.pt")
 
     def __call__(self, image_path: str):
-        """
-        img = cv2.imread(image_path)
-        t0 = time()
-        res = self.__human_detector.run_human_detection(img)
-        print(f"Time: {1000.*(time() - t0)} ms")
-        boxes = [res[i].tolist() for i in range(res.shape[0])]
-        print(boxes)
-        draw_save(img.copy(), boxes, "./t1.jpg")
-        
-        print('=====')
-        t0 = time()
-        res = self.__det2(img)[0]
-        print(f"Time: {1000.*(time() - t0)} ms")
-        boxes = [list(map(int, box.xyxy[0])) for box in res.boxes if int(box.cls[0]) == 0]
-        print(boxes)
-        draw_save(img.copy(), boxes, "./t2.jpg")
-        return True
-        """
-
-        outputs = self.__estimator.process_one_image(image_path, bbox_thr=self.__bbox_thresh, use_mask=self.__use_mask)
+        outputs = self.__estimator.process_one_image(image_path,
+                                                     bbox_thr=self.__bbox_thresh,
+                                                     use_mask=self.__use_mask)
         return numpy_to_native(outputs[0])
 
-#def draw_save(img, boxes, path):
-#    for (x1, y1, x2, y2) in boxes:
-#        cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-#    cv2.imwrite(path, img)
 
 def numpy_to_native(obj):
     """
