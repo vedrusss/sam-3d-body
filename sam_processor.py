@@ -6,8 +6,6 @@ from time import time
 import numpy as np
 import torch
 
-import _init_paths
-
 from human_detector.human_detector_vitdet import HumanDetector
 from tools.build_fov_estimator import FOVEstimator
 from sam_3d_body import load_sam_3d_body, SAM3DBodyEstimator
