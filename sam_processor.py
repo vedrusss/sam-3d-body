@@ -12,7 +12,7 @@ from sam_3d_body import load_sam_3d_body, SAM3DBodyEstimator
 
 
 class SAM3D_Processor:
-    def __init__(self, detector_folder_path: str, 
+    def __init__(self, detector_path: str, 
                        checkpoint_path: str, 
                        mhr_path: str, 
                        fov_path: str):
@@ -25,7 +25,7 @@ class SAM3D_Processor:
                                                           mhr_path=mhr_path)
         print("SAM 3D model is ready")
         print("Loading Person Detector")
-        self.__human_detector = HumanDetector(model_dir=detector_folder_path,  # куда сложить веса
+        self.__human_detector = HumanDetector(model_dir=detector_path,
                                               device=self.__device,
                                               download_if_missing=True,
                                               score_thresh=0.25)

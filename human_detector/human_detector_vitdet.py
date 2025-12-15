@@ -60,50 +60,48 @@ class HumanDetector:
 
     def __init__(
         self,
-        model_dir: str = "~/.cache/human_detector_vitdet",
+        model_path: str,
         device: str = "cuda",
-        download_if_missing: bool = True,
+        download_if_missing: bool = False,
         score_thresh: float = 0.25,
     ):
         """
-        :param model_dir: директория, где лежат/будут лежать веса.
+        :param model_path: object detector checkpoint path.
         :param device: 'cuda' или 'cpu'.
-        :param download_if_missing: если True, при отсутствии весов скачает их.
-        :param score_thresh: порог score для боксов (будет применён к предикторам).
+        :param download_if_missing: если True, download checkpoint if not presented.
+        :param score_thresh: score threshold for boxes.
         """
         self.device = device
-        self.model_dir = _ensure_dir(Path(model_dir).expanduser())
-        self.checkpoint_path = self.model_dir / "model_final_f05665.pkl"
+        self.checkpoint_path = model_path # self.model_dir / "model_final_f05665.pkl"
 
-        # 1. Убедимся, что чекпоинт есть локально
+        # 1. Check checkpoint presented locally
         if not self.checkpoint_path.exists():
             if not download_if_missing:
                 raise FileNotFoundError(
                     f"Checkpoint not found: {self.checkpoint_path}\n"
-                    f"Скачай его вручную с:\n  {_DEFAULT_MODEL_URL}\n"
-                    f"и положи по этому пути."
+                    f"Download it from:\n  {_DEFAULT_MODEL_URL}\n"
+                    f"and keep under that path."
                 )
             _download_file(_DEFAULT_MODEL_URL, self.checkpoint_path)
 
-        # 2. Загрузим модель из локального lazy-конфига
+        # 2. Load the model from local lazy-config
         self.detector = self._load_detector(score_thresh=score_thresh)
         self.detector.to(self.device)
         self.detector.eval()
 
     def _load_detector(self, score_thresh: float):
         """
-        Загрузка модели по локальному конфигу + локальным весам.
-        Никаких detectron2:// и скрытых загрузок.
+        Load the model from local config + local weights.
         """
         from detectron2.checkpoint import DetectionCheckpointer
         from detectron2.config import instantiate, LazyConfig
 
-        # Конфиг лежит рядом с этим файлом: vitdet_cascade_h_inference.py
+        # Local config: vitdet_cascade_h_inference.py
         cfg_path = Path(__file__).parent / "vitdet_cascade_h_inference.py"
         if not cfg_path.exists():
             raise FileNotFoundError(
                 f"Config file not found: {cfg_path}\n"
-                f"Убедись, что vitdet_cascade_h_inference.py лежит рядом с {__file__}."
+                f"Check vitdet_cascade_h_inference.py presented near by {__file__}."
             )
 
         cfg = LazyConfig.load(str(cfg_path))
