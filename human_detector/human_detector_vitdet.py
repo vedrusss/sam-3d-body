@@ -26,25 +26,19 @@ def _ensure_dir(path: Path) -> Path:
     return path
 
 
-def _download_file(url: str, dst: Path) -> None:
+def _download_file(url: str, dst: str) -> None:
     """
     Примитивный загрузчик файла с дискомфортно-простым логированием.
     Один раз скачали — дальше берём только локальный файл.
     """
     import requests
-
-    dst_tmp = dst.with_suffix(dst.suffix + ".tmp")
-
     print(f"[HumanDetector] Downloading weights from {url} to {dst} ...")
-
     with requests.get(url, stream=True) as r:
         r.raise_for_status()
-        with open(dst_tmp, "wb") as f:
+        with open(dst, "wb") as f:
             for chunk in r.iter_content(chunk_size=8192):
                 if chunk:
                     f.write(chunk)
-
-    dst_tmp.replace(dst)
     print("[HumanDetector] Download complete.")
 
 
@@ -75,7 +69,7 @@ class HumanDetector:
         self.checkpoint_path = model_path # self.model_dir / "model_final_f05665.pkl"
 
         # 1. Check checkpoint presented locally
-        if not self.checkpoint_path.exists():
+        if not os.path.isfile(self.checkpoint_path):
             if not download_if_missing:
                 raise FileNotFoundError(
                     f"Checkpoint not found: {self.checkpoint_path}\n"
@@ -109,7 +103,7 @@ class HumanDetector:
         # Укажем путь к локальному чекпоинту (для загрузки весов)
         # Здесь train.* нам не нужен, но иногда удобно сохранить ссылку:
         if "train" in cfg and hasattr(cfg.train, "init_checkpoint"):
-            cfg.train.init_checkpoint = str(self.checkpoint_path)
+            cfg.train.init_checkpoint = self.checkpoint_path
 
         # Настроим порог score для всех каскадных предикторов
         # (в ViTDet Cascade их обычно 3)
@@ -124,7 +118,7 @@ class HumanDetector:
 
         # Загрузим веса
         checkpointer = DetectionCheckpointer(model)
-        checkpointer.load(str(self.checkpoint_path))
+        checkpointer.load(self.checkpoint_path)
 
         model.eval()
         return model
