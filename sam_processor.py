@@ -25,9 +25,9 @@ class SAM3D_Processor:
                                                           mhr_path=mhr_path)
         print("SAM 3D model is ready")
         print("Loading Person Detector")
-        self.__human_detector = HumanDetector(model_dir=detector_path,
+        self.__human_detector = HumanDetector(model_path=detector_path,
                                               device=self.__device,
-                                              download_if_missing=True,
+                                              download_if_missing=False,
                                               score_thresh=0.25)
         print("Person Detector is ready")
         print("Loading FOV Estimator")
