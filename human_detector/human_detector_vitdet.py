@@ -82,6 +82,8 @@ class HumanDetector:
         self.detector = self._load_detector(score_thresh=score_thresh)
         self.detector.to(self.device)
         self.detector.eval()
+        self.detector.half()
+        #self.detector.backbone = torch.compile(self.detector.backbone, mode="max-autotune")  # "max-autotune", "reduce-overhead"
 
     def _load_detector(self, score_thresh: float):
         """
@@ -162,9 +164,8 @@ class HumanDetector:
         height, width = img.shape[:2]
 
         IMAGE_SIZE = 1024
-        transforms = T.ResizeShortestEdge(
-            short_edge_length=IMAGE_SIZE, max_size=IMAGE_SIZE
-        )
+        #transforms = T.Resize((IMAGE_SIZE, IMAGE_SIZE))
+        transforms = T.ResizeShortestEdge(short_edge_length=IMAGE_SIZE, max_size=IMAGE_SIZE)
         aug_input = T.AugInput(img)
         transforms(aug_input)
         img_transformed = aug_input.image  # уже трансформированное
@@ -175,7 +176,8 @@ class HumanDetector:
 
         inputs = {"image": img_tensor, "height": height, "width": width}
 
-        with torch.no_grad():
+        # autocast to FP16 dicreases processing time by 40% (with GPU usage increase by 7,5%)
+        with torch.no_grad(), torch.autocast(device_type="cuda", dtype=torch.float16):
             outputs = self.detector([inputs])
 
         instances = outputs[0]["instances"]
@@ -197,3 +199,22 @@ class HumanDetector:
             boxes = boxes[sorted_indices]
 
         return boxes
+
+if __name__ == '__main__':
+    import sys
+    from time import time
+    import cv2
+
+    if len(sys.argv) < 3:
+        print(f"Usage: {sys.argv[0]} <model path> <image path>")
+        quit()
+    
+    detector = HumanDetector(model_path=sys.argv[1], device="cuda", download_if_missing=False, score_thresh=0.25)
+    timings = []
+    for _ in range(10):
+        img = cv2.imread(sys.argv[2])
+        t0 = time()
+        boxes = detector.run_human_detection(img, det_cat_id=0, bbox_thr=0.5, nms_thr=0.3, default_to_full_image=False)
+        timings.append(time() - t0)
+    timings = timings[2:]
+    print(f"Average processing time: {1000. * sum(timings)/len(timings)} ms")

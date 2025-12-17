@@ -64,6 +64,11 @@ model.roi_heads.update(
     ],
 )
 
+# Disable mask branch (do NOT set mask_on)
+for k in ["mask_in_features", "mask_pooler", "mask_head"]:
+    if hasattr(model.roi_heads, k):
+        model.roi_heads.pop(k)
+
 # 4. Настройки Huge ViT backbone (ViTDet-H)
 
 model.backbone.net.embed_dim = 1280
