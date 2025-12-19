@@ -70,7 +70,7 @@ def main(args):
         human_segmentor = HumanSegmentor(
             name=args.segmentor_name, device=device, path=segmentor_path
         )
-    if args.fov_name:
+    if False: # args.fov_name:
         from tools.build_fov_estimator import FOVEstimator
 
         fov_estimator = FOVEstimator(name=args.fov_name, device=device, path=fov_path)
@@ -85,7 +85,7 @@ def main(args):
         model_cfg=model_cfg,
         human_detector=human_detector,
         human_segmentor=human_segmentor,
-        fov_estimator=fov_estimator,
+        fov_estimator=None #fov_estimator,
     )
 
     timings = []
@@ -95,6 +95,7 @@ def main(args):
             image_path,
             bbox_thr=args.bbox_thresh,
             use_mask=args.use_mask,
+            inference_type="body"
         )
         timings.append(time() - t0)
         img = cv2.imread(image_path)

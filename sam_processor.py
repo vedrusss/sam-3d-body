@@ -31,9 +31,7 @@ class SAM3D_Processor:
                                               score_thresh=0.25)
         print("Person Detector is ready")
         print("Loading FOV Estimator")
-        self.__fov_estimator = FOVEstimator(name="moge2", 
-                                            device=self.__device,
-                                            path=fov_path)
+        self.__fov_estimator = None # FOVEstimator(name="moge2", device=self.__device, path=fov_path)
         print("FOV Estimator is ready")
         self.__estimator = SAM3DBodyEstimator(sam_3d_body_model=self.__model, model_cfg=self.__model_cfg,
                                               human_detector=self.__human_detector,
@@ -46,7 +44,8 @@ class SAM3D_Processor:
     def __call__(self, image_path: str):
         outputs = self.__estimator.process_one_image(image_path,
                                                      bbox_thr=self.__bbox_thresh,
-                                                     use_mask=self.__use_mask)
+                                                     use_mask=self.__use_mask,
+                                                     inference_type="body")
         return numpy_to_native(outputs[0])
 
 

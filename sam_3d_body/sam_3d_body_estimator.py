@@ -71,7 +71,7 @@ class SAM3DBodyEstimator:
         bbox_thr: float = 0.5,
         nms_thr: float = 0.3,
         use_mask: bool = False,
-        inference_type: str = "full",
+        inference_type: str = "body",
     ):
         """
         Perform model prediction in top-down format: assuming input is a full image.
@@ -176,13 +176,14 @@ class SAM3DBodyEstimator:
         else:
             cam_int = batch["cam_int"].clone()
 
-        outputs = self.model.run_inference(
-            img,
-            batch,
-            inference_type=inference_type,
-            transform_hand=self.transform_hand,
-            thresh_wrist_angle=self.thresh_wrist_angle,
-        )
+        with torch.no_grad(), torch.autocast(device_type="cuda", dtype=torch.float16):
+            outputs = self.model.run_inference(
+                img,
+                batch,
+                inference_type=inference_type,
+                transform_hand=self.transform_hand,
+                thresh_wrist_angle=self.thresh_wrist_angle,
+            )
         if inference_type == "full":
             pose_output, batch_lhand, batch_rhand, _, _ = outputs
         else:

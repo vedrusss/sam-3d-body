@@ -497,15 +497,16 @@ class SAM3DBody(BaseModel):
                 args = kp3d_token_update_fn(kps3d_emb_start_idx, *args)
             return args
 
-        pose_token, pose_output = self.decoder(
-            token_embeddings,
-            image_embeddings,
-            token_augment,
-            image_augment,
-            token_mask,
-            token_to_pose_output_fn=token_to_pose_output_fn,
-            keypoint_token_update_fn=keypoint_token_update_fn_comb,
-        )
+        with torch.autocast("cuda", enabled=False):
+            pose_token, pose_output = self.decoder(
+                token_embeddings,
+                image_embeddings,
+                token_augment,
+                image_augment,
+                token_mask,
+                token_to_pose_output_fn=token_to_pose_output_fn,
+                keypoint_token_update_fn=keypoint_token_update_fn_comb,
+            )
 
         if self.cfg.MODEL.DECODER.get("DO_HAND_DETECT_TOKENS", False):
             return (
@@ -730,15 +731,16 @@ class SAM3DBody(BaseModel):
                 args = kp3d_token_update_fn(kps3d_emb_start_idx, *args)
             return args
 
-        pose_token, pose_output = self.decoder_hand(
-            token_embeddings,
-            image_embeddings,
-            token_augment,
-            image_augment,
-            token_mask,
-            token_to_pose_output_fn=token_to_pose_output_fn,
-            keypoint_token_update_fn=keypoint_token_update_fn_comb,
-        )
+        with torch.autocast("cuda", enabled=False):
+            pose_token, pose_output = self.decoder_hand(
+                token_embeddings,
+                image_embeddings,
+                token_augment,
+                image_augment,
+                token_mask,
+                token_to_pose_output_fn=token_to_pose_output_fn,
+                keypoint_token_update_fn=keypoint_token_update_fn_comb,
+            )
 
         if self.cfg.MODEL.DECODER.get("DO_HAND_DETECT_TOKENS", False):
             return (
