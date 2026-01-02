@@ -5,6 +5,7 @@ from time import time
 
 import numpy as np
 import torch
+from typing import Union
 
 from human_detector.human_detector_vitdet import HumanDetector
 from tools.build_fov_estimator import FOVEstimator
@@ -41,12 +42,13 @@ class SAM3D_Processor:
         self.__bbox_thresh = 0.8
         self.__use_mask = False
 
-    def __call__(self, image_path: str):
-        outputs = self.__estimator.process_one_image(image_path,
+    def __call__(self, image: Union[str, np.ndarray], convert_from_numpy=False):
+        #  image is either local path to an image or cv2 image (BGR format)
+        outputs = self.__estimator.process_one_image(image,
                                                      bbox_thr=self.__bbox_thresh,
                                                      use_mask=self.__use_mask,
                                                      inference_type="body")
-        return numpy_to_native(outputs[0])
+        return numpy_to_native(outputs[0]) if convert_from_numpy else outputs[0]
 
 
 def numpy_to_native(obj):
