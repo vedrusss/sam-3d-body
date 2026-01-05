@@ -1,6 +1,5 @@
 __author__ = "A.Antonenko, vedrusss@gmail.com"
 
-from __future__ import annotations
 import argparse
 from time import time
 
