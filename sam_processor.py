@@ -10,6 +10,8 @@ from typing import Any, List, Optional, Tuple, Union
 from human_detector.human_detector_vitdet import HumanDetector
 from tools.build_fov_estimator import FOVEstimator
 from sam_3d_body import load_sam_3d_body, SAM3DBodyEstimator
+from sam_3d_body.metadata.mhr70 import pose_info as mhr70_pose_info
+from sam_3d_body.visualization.utils import parse_pose_metainfo
 
 
 class SAM3D_Processor:
@@ -110,6 +112,42 @@ def parse_sam_outputs_for_annotation_instances(
     if outputs is None:
         return None
 
+    def sam_kpts_to_movenet17(
+        sam_kpts: np.ndarray,
+        sam_to_movenet_idx: List[Optional[int]],
+    ) -> np.ndarray:
+        """
+        Convert SAM keypoints to MoveNet-17 format by index mapping.
+
+        Args:
+            sam_kpts: np.ndarray of shape (K, D),
+                      where D = 2 (2D) or D = 3 (3D)
+            sam_to_movenet_idx: list of length 17,
+                      each element is an index into sam_kpts or None
+
+        Returns:
+            np.ndarray of shape (17, D), dtype float32
+        """
+        if sam_kpts.ndim != 2:
+            raise ValueError(f"sam_kpts must be 2D array, got shape {sam_kpts.shape}")
+
+        K, D = sam_kpts.shape
+        if D not in (2, 3):
+            raise ValueError(f"Expected 2D or 3D keypoints, got D={D}")
+
+        if len(sam_to_movenet_idx) != 17:
+            raise ValueError("sam_to_movenet_idx must have length 17")
+
+        out = np.zeros((17, D), dtype=np.float32)
+
+        for mv_idx, sam_idx in enumerate(sam_to_movenet_idx):
+            if sam_idx is None:
+                continue
+            if 0 <= sam_idx < K:
+                out[mv_idx] = sam_kpts[sam_idx]
+
+        return out
+
     # Normalize to list[dict]
     if isinstance(outputs, dict):
         det_list = [outputs]
@@ -126,6 +164,8 @@ def parse_sam_outputs_for_annotation_instances(
         track_ids = list(range(len(det_list)))
     else:
         track_ids = [0] * len(det_list)
+
+    sam_to_movenet_idx = build_sam_to_movenet_idx(parse_pose_metainfo(mhr70_pose_info))
 
     instances = []
 
@@ -156,11 +196,12 @@ def parse_sam_outputs_for_annotation_instances(
         if kpts2d.ndim != 2 or kpts2d.shape[1] != 2:
             continue
 
-        # Keypoint scores отсутствуют — ставим 1.0 (или можно вывести суррогат, см. ниже)
-        kp_scores = np.ones((kpts2d.shape[0],), dtype=np.float32)
+        # Reindex to MoveNet17
+        mv_kpts2d = sam_kpts_to_movenet17(sam_kpts2d, sam_to_movenet_idx)  # (17,2)
+        mv_scores = np.ones((17,), dtype=np.float32)
 
         # Apply your scaling conventions (as in YOLO converter)
-        kp_xy_scaled = scale_obj(kpts2d, kp_scale) if kp_scale is not None else kpts2d
+        kp_xy_scaled = scale_obj(mv_kpts2d, kp_scale) if kp_scale is not None else mv_kpts2d
         bbox_scaled = scale_obj(bbox, box_scale) if box_scale is not None else bbox
 
         # Box confidence: в детекции нет явного score.
@@ -169,7 +210,7 @@ def parse_sam_outputs_for_annotation_instances(
 
         inst = dict(
             kp_xy_scaled=kp_xy_scaled,
-            kp_scores=np.clip(kp_scores, 0, 1),
+            kp_scores=np.clip(mv_scores, 0, 1),
             bbox=bbox_scaled.squeeze(),
             box_confidence=float(box_conf),
             tracking_id=int(track_ids[i])
@@ -181,11 +222,57 @@ def parse_sam_outputs_for_annotation_instances(
             if kpts3d.ndim == 3 and kpts3d.shape[0] == 1:
                 kpts3d = kpts3d[0]
             if kpts3d.ndim == 2 and kpts3d.shape[1] == 3:
-                inst['kp_3d'] = kpts3d
+                inst['kp_3d'] = sam_kpts_to_movenet17(kpts3d, sam_to_movenet_idx)
 
         instances.append(inst)
 
     return instances
+
+
+MOVENET_NAMES = [
+    "nose",
+    "left_eye", "right_eye",
+    "left_ear", "right_ear",
+    "left_shoulder", "right_shoulder",
+    "left_elbow", "right_elbow",
+    "left_wrist", "right_wrist",
+    "left_hip", "right_hip",
+    "left_knee", "right_knee",
+    "left_ankle", "right_ankle",
+]
+
+def build_sam_to_movenet_idx(pose_meta_parsed: dict):
+    """
+    pose_meta_parsed = parse_pose_metainfo(...)
+    returns: List[Optional[int]] length 17
+    """
+    name2id = pose_meta_parsed["keypoint_name2id"]
+
+    def pick(*names):
+        for n in names:
+            if n in name2id:
+                return name2id[n]
+        return None
+
+    return [
+        pick("nose", "head", "neck"),                 # nose
+        pick("left_eye", "left_ear", "head"),         # left_eye
+        pick("right_eye", "right_ear", "head"),       # right_eye
+        pick("left_ear", "head"),                     # left_ear
+        pick("right_ear", "head"),                    # right_ear
+        pick("left_shoulder"),
+        pick("right_shoulder"),
+        pick("left_elbow"),
+        pick("right_elbow"),
+        pick("left_wrist"),
+        pick("right_wrist"),
+        pick("left_hip"),
+        pick("right_hip"),
+        pick("left_knee"),
+        pick("right_knee"),
+        pick("left_ankle"),
+        pick("right_ankle"),
+    ]
 
 
 
