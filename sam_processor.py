@@ -197,7 +197,7 @@ def parse_sam_outputs_for_annotation_instances(
             continue
 
         # Reindex to MoveNet17
-        mv_kpts2d = sam_kpts_to_movenet17(sam_kpts2d, sam_to_movenet_idx)  # (17,2)
+        mv_kpts2d = sam_kpts_to_movenet17(kpts2d, sam_to_movenet_idx)  # (17,2)
         mv_scores = np.ones((17,), dtype=np.float32)
 
         # Apply your scaling conventions (as in YOLO converter)
