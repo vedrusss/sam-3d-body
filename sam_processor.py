@@ -28,10 +28,9 @@ class SAM3D_Processor:
                                                           mhr_path=mhr_path)
         print("SAM 3D model is ready")
         print("Loading Person Detector")
-        self.__human_detector = HumanDetector(model_path=detector_path,
-                                              device=self.__device,
-                                              download_if_missing=False,
-                                              score_thresh=0.25)
+        self.__human_detector = None if detector_path is None else \
+            HumanDetector(model_path=detector_path, device=self.__device,
+                          download_if_missing=False, score_thresh=0.25)
         print("Person Detector is ready")
         print("Loading FOV Estimator")
         self.__fov_estimator = None # FOVEstimator(name="moge2", device=self.__device, path=fov_path)
@@ -44,10 +43,10 @@ class SAM3D_Processor:
         self.__bbox_thresh = 0.8
         self.__use_mask = False
 
-    def __call__(self, image: Union[str, np.ndarray], 
+    def __call__(self, image: Union[str, np.ndarray], bboxes: Optional[np.ndarray] = None,
                  kp_scale: Optional[float]=None, box_scale: Optional[float]=None):
         #  image is either local path to an image or cv2 image (BGR format)
-        outputs = self.__estimator.process_one_image(image,
+        outputs = self.__estimator.process_one_image(image, bboxes,
                                                      bbox_thr=self.__bbox_thresh,
                                                      use_mask=self.__use_mask,
                                                      inference_type="body")
