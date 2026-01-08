@@ -42,6 +42,8 @@ class SAM3D_Processor:
         )
         self.__bbox_thresh = 0.8
         self.__use_mask = False
+        #  warmup call
+        self.__call__(np.zeros((640, 640, 3), dtype=np.uint8), np.array([[50, 50, 200, 200]], dtype=np.float32))
 
     def __call__(self, image: Union[str, np.ndarray], bboxes: Optional[np.ndarray] = None,
                  kp_scale: Optional[float]=None, box_scale: Optional[float]=None):
