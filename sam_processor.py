@@ -7,7 +7,6 @@ import numpy as np
 import torch
 from typing import Any, List, Optional, Tuple, Union
 
-from human_detector.human_detector_vitdet import HumanDetector
 from tools.build_fov_estimator import FOVEstimator
 from sam_3d_body import load_sam_3d_body, SAM3DBodyEstimator
 from sam_3d_body.metadata.mhr70 import pose_info as mhr70_pose_info
@@ -18,7 +17,7 @@ class SAM3D_Processor:
     def __init__(self, detector_path: str, 
                        checkpoint_path: str, 
                        mhr_path: str, 
-                       fov_path: str):
+                       fov_path: str=None):
         # Initialize sam-3d-body model and other optional modules
         self.__device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         
@@ -28,12 +27,19 @@ class SAM3D_Processor:
                                                           mhr_path=mhr_path)
         print("SAM 3D model is ready")
         print("Loading Person Detector")
-        self.__human_detector = None if detector_path is None else \
-            HumanDetector(model_path=detector_path, device=self.__device,
-                          download_if_missing=False, score_thresh=0.25)
+        if detector_path is not None:
+            from human_detector.human_detector_vitdet import HumanDetector
+            self.__human_detector = HumanDetector(model_path=detector_path, 
+                                                  device=self.__device,
+                                                  download_if_missing=False,
+                                                  score_thresh=0.25)
+        else:
+            self.__human_detector = None
+
         print("Person Detector is ready")
         print("Loading FOV Estimator")
-        self.__fov_estimator = None # FOVEstimator(name="moge2", device=self.__device, path=fov_path)
+        self.__fov_estimator = None if fov_path is None else\
+            FOVEstimator(name="moge2", device=self.__device, path=fov_path)
         print("FOV Estimator is ready")
         self.__estimator = SAM3DBodyEstimator(sam_3d_body_model=self.__model, model_cfg=self.__model_cfg,
                                               human_detector=self.__human_detector,
